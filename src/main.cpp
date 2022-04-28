@@ -1,5 +1,8 @@
 #include "main.h"
 
+volatile int points = 0;
+volatile int highscore __attribute__ ((section (".noinit")));
+
 //Amount of possible X locations of lasers and enemies
 #define LASER_SIZE 155
 #define ENEMIES_SIZE 155
@@ -13,6 +16,7 @@ volatile short shipY;
 
 //Resets both lasers and enemies
 void resetGame() {
+    points = 0;
     for (short & i : laserY) {
         i = -1;
     }
@@ -40,9 +44,11 @@ __attribute__((unused)) void setup() {
 
 //Game over, resets game and variables
 void gameOver() {
+    if (points > highscore) highscore = points;
     VGAXUA::clear(1);
-    static const char str1[] PROGMEM="GAME OVER!";
-    VGAXUA::printPROGMEM((byte*)fnt_ufont_data, FNT_UFONT_SYMBOLS_COUNT, FNT_UFONT_HEIGHT, 3, 1, str1, 30, VGAX_WIDTH/2+20, 0);
+    char str1[128];
+    snprintf(str1, 64, "GAME OVER! SCORE: %d | HIGH: %d", points, highscore);
+    VGAXUA::printSRAM((byte*)fnt_ufont_data, FNT_UFONT_SYMBOLS_COUNT, FNT_UFONT_HEIGHT, 3, 1, str1, 30, VGAX_WIDTH/2+20, 0);
     VGAXUA::delay(1000);
     resetGame();
 }
@@ -101,6 +107,7 @@ __attribute__((unused)) void loop() {
             if (((frame % 2) ? i : i + 1) % 4 == 0) VGAXUA::putpixel(i, laserY[i], 1);
             if (enemiesY[i] == laserY[i] || enemiesY[i] == laserY[i]+1 || enemiesY[i] == laserY[i]-1 || enemiesY[i] == laserY[i]-2 || enemiesY[i] == laserY[i]+2) {
                 enemiesY[i] = -1;
+                points++;
             }
         }
     }
@@ -120,6 +127,10 @@ __attribute__((unused)) void loop() {
             VGAXUA::putpixel(i+2, enemiesY[i]-2, 1);
         }
     }
+
+    char scoreDisplay[64];
+    snprintf(scoreDisplay, 64, "SCORE: %d", points);
+    VGAXUA::printSRAM((byte*)fnt_ufont_data, FNT_UFONT_SYMBOLS_COUNT, FNT_UFONT_HEIGHT, 3, 1, scoreDisplay, VGAX_WIDTH-50, 20, 1);
 
     //Wait a millisecond before running the loop again
     VGAXUA::delay(1);
